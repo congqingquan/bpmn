@@ -1,0 +1,98 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /activiti
+    session:
+      timeout: PT1H
+
+management:
+  server:
+    port: -1  # 修改端口，跳过安全漏洞扫描
+  endpoints:
+    enabled-by-default: false #关闭监控
+    web:
+      exposure:
+        include: '*'
+
+spring:
+  application:
+    name: activiti-web
+  main:
+    banner-mode: log
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 50MB
+      max-file-size: 5MB
+  mvc:
+    path-match:
+      matching-strategy: ANT_PATH_MATCHER
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    name: defaultDataSource
+    url: jdbc:mysql://127.0.0.1:3306/activiti?useUnicode=true&characterEncoding=utf8&autoReconnect=true&failOverReadOnly=false&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    druid:
+      initialSize: 5
+      minIdle: 5
+      maxActive: 20
+      maxWait: 60000
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      validationQuery: SELECT 1
+      testWhileIdle: true
+      testOnBorrow: true
+      testOnReturn: true
+      poolPreparedStatements: true
+      keepAlive: true
+      maxPoolPreparedStatementPerConnectionSize: 20
+      useGlobalDataSourceStat: true
+      connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+  # activiti7 配置 (不使用 activiti.cfg.xml, activiti-boot-starter 已经很完美的适配了 application.yaml 中的配置)
+  activiti:
+    # 保存历史数据
+    # none：不保存任何历史数据，流程中这是最高效的
+    # activity：只保存流程实例和流程行为
+    # audit：除了activity，还保存全部的流程任务以及其属性，audit为history默认值
+    # full：除了audit、还保存其他全部流程相关的细节数据，包括一些流程参数
+    history-level: full
+    # 监测历史表是否存在，activities7默认不开启历史表
+    db-history-used: true
+
+    # 关闭自动部署 (需要下面的两个属性同时配置)
+    deployment-mode: never-fail
+    # 校验流程文件，默认校验 classpath*:**/processes/ 下的所有流程文件
+    check-process-definitions: false
+
+    #    false:默认，数据库表不变，但是如果版本不对或者缺失表会抛出异常（生产使用）
+    #    true:表不存在，自动创建（开发使用）
+    #    create_drop: 启动时创建，关闭时删除表（测试使用）
+    #    drop_create: 启动时删除表,在创建表 （不需要手动关闭引擎）
+    database-schema-update: true
+    # 解决频繁查询SQL问题
+    async-executor-activate: false
+  # datasource、tx 配置 (无缝衔接 spring.datasource 中的配置)
+
+mybatis-plus:
+  mapper-locations: classpath*:priv/cqq/activiti/**/mapper/*Mapper.xml
+  global-config:
+    datacenterId: 1
+    worker-id: 2
+    banner: false
+  configuration:
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+    local-cache-scope: statement
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    map-underscore-to-camel-case: true
+
+swagger:
+  enable: true
+  title: Activity Api
+  version: 1.0
+  description: Activity Api
+
+logging:
+  config: classpath:logback-spring.xml
