@@ -44,6 +44,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.activiti</groupId>
+                <artifactId>activiti-image-generator</artifactId>
+                <version>${activiti-boot-starter.version}</version>
+            </dependency>
             <!-- <dependency> -->
             <!--     <groupId>org.activiti.dependencies</groupId> -->
             <!--     <artifactId>activiti-dependencies</artifactId> -->
