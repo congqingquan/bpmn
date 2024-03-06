@@ -10,6 +10,7 @@ import org.activiti.engine.history.HistoricActivityInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.activiti.image.impl.DefaultProcessDiagramGenerator;
 import org.apache.commons.io.FileUtils;
@@ -30,23 +31,23 @@ import java.util.stream.Collectors;
 
 @SpringBootTest
 public class ActivityQuickstartTest {
-
+    
     // ============================================ Engine ============================================
-
+    
     @Test
     public void createProcessEngine() {
         // Auto create table
         ProcessEngines.getDefaultProcessEngine();
     }
-
+    
     // ============================================ Deploy: RepositoryService ============================================
-
-
+    
+    
     // RepositoryService repositoryService = ActivitiHelper.getProcessEngine().getRepositoryService();
-
+    
     @Resource
     private RepositoryService repositoryService;
-
+    
     @Test
     public void deployment() {
         // 1. 流程部署 (注意：同时会创建部署信息、流程定义信息数据)
@@ -54,17 +55,17 @@ public class ActivityQuickstartTest {
                 .createDeployment()
                 // 1) 流数据加载
                 // .addInputStream()
-
+                
                 // 2) 压缩包加载
                 // .addZipInputStream()
-
+                
                 // 3) classpath 加载
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getFileClasspath())
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
                 .name(BPMNFileEnums.WITHDRAWAL.getName())
                 .deploy();
         System.out.println(deployment);
-
+        
         // 2.
         // 2.1 查询部署信息
         Deployment queriedDeployment = repositoryService
@@ -74,7 +75,7 @@ public class ActivityQuickstartTest {
         System.out.println("部署主键：" + queriedDeployment.getId());
         System.out.println("部署名称：" + queriedDeployment.getName());
         System.out.println("部署KEY：" + queriedDeployment.getKey());
-
+        
         // 2.2 查询与部署信息对应的流程定义信息
         ProcessDefinition processDefinition = repositoryService
                 .createProcessDefinitionQuery()
@@ -83,7 +84,7 @@ public class ActivityQuickstartTest {
         System.out.println("流程定义主键：" + processDefinition.getId());
         System.out.println("流程定义名称：" + processDefinition.getName());
         System.out.println("流程定义KEY：" + processDefinition.getKey() + "\t" + "枚举 Key: " + BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId());
-
+        
         // 3. 删除部署信息、流程定义信息
         // List<Deployment> deploymentList = repositoryService.createDeploymentQuery().list();
         // for (Deployment d : deploymentList) {
@@ -91,69 +92,100 @@ public class ActivityQuickstartTest {
         // repositoryService.deleteDeployment(d.getId(), true);
         // }
     }
-
+    
+    @Test
+    public void clear() {
+        // 1. 删除部署信息、流程定义信息
+        List<Deployment> deploymentList = repositoryService.createDeploymentQuery().list();
+        for (Deployment d : deploymentList) {
+            // cascade: 同时删除正在运行的任务实例数据
+            repositoryService.deleteDeployment(d.getId(), true);
+        }
+    }
+    
     // ============================================ Processes: RuntimeService ============================================
-
+    
     // RuntimeService runtimeService = ActivitiHelper.getProcessEngine().getRuntimeService();
-
+    
     @Resource
     private RuntimeService runtimeService;
-
+    
     @Test
     public void process() {
         // 1. 根据部署信息获取对应的流程定义信息
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId("8f6216eb-dada-11ee-a27d-20c19b7a45c3")
                 .singleResult();
-
+        
         // 2. 启动流程实例
         // 2.1 根据流程定义主键
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
         // 2.2 根据流程定义Key
         // ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(processDefinition.getKey());
-
+        
         System.out.println("流程实例主键：" + processInstance.getId());
         System.out.println("流程实例主键：" + processInstance.getProcessInstanceId());
         System.out.println("流程实例名称：" + processInstance.getName());
         System.out.println("流程实例描述：" + processInstance.getDescription());
-
-        // TODO
+        
+        // 3. 查询流程实例
         List<ProcessInstance> processInstanceList = runtimeService.createProcessInstanceQuery()
                 .processDefinitionId(processInstance.getProcessDefinitionId())
                 .list();
         for (ProcessInstance instance : processInstanceList) {
-            System.out.println(instance);
+            System.out.println("流程实例主键：" + instance.getId());
+            System.out.println("流程实例主键：" + instance.getProcessInstanceId());
+            System.out.println("流程实例名称：" + instance.getName());
+            System.out.println("流程实例描述：" + instance.getDescription());
         }
-
+        
         runtimeService.deleteProcessInstance(
                 processInstance.getProcessInstanceId(),
                 "Test" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
     }
-
+    
     // ============================================ Task: TaskService ============================================
-
+    
     // TaskService taskService = ActivitiHelper.getProcessEngine().getTaskService();
-
+    
     @Resource
     private TaskService taskService;
-
+    
+    @Test
+    public void task() throws IOException {
+        // 1. 查询任务
+        List<Task> taskList = taskService.createTaskQuery()
+                .processInstanceId("fc6319b9-dadb-11ee-a49c-20c19b7a45c3")
+                .list();
+        for (Task task : taskList) {
+            System.out.println("流程实例主键: " + task.getProcessInstanceId());
+            System.out.println("任务主键: " + task.getId());
+            System.out.println("任务名称: " + task.getName());
+            
+        }
+        // 2. 完成任务
+        Task lastTask = taskList.get(taskList.size() - 1);
+        taskService.complete(lastTask.getId());
+    }
+    
+    
     // ============================================ History: HistoryService ============================================
-
+    
     // HistoryService historyService = ActivitiHelper.getProcessEngine().getHistoryService();
-
+    
     @Resource
     private HistoryService historyService;
-
+    
     // ============================================ ProcessDiagramGenerator ============================================
-
+    
     /**
-     生成流程图 SVG 图片
-
-     <dependency>
-     <groupId>org.activiti</groupId>
-     <artifactId>activiti-image-generator</artifactId>
-     <version>${activiti-boot-starter.version}</version>
-     </dependency>
+     * 生成流程图 SVG 图片
+     *
+     * <dependency>
+     * <groupId>org.activiti</groupId>
+     * <artifactId>activiti-image-generator</artifactId>
+     * <version>${activiti-boot-starter.version}</version>
+     * </dependency>
      */
     @Test
     public void generateSVG() throws IOException {
@@ -164,17 +196,17 @@ public class ActivityQuickstartTest {
         String imageName = "image-" + Instant.now().getEpochSecond() + "svg";
         FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
     }
-
+    
     @Test
     public void generateCurrentSVG() throws IOException {
-
+        
         ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
-
+        
         // 获取运行中的流程实例
         ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
                 .processInstanceId("fc6319b9-dadb-11ee-a49c-20c19b7a45c3")
                 .singleResult();
-
+        
         // 获取运行中的流程实例的历史节点列表
         List<HistoricActivityInstance> lastTasks =
                 historyService.createHistoricActivityInstanceQuery()
@@ -182,13 +214,13 @@ public class ActivityQuickstartTest {
                         .orderByHistoricActivityInstanceStartTime()
                         .desc()
                         .list();
-
+        
         // 收集最后一个历史活动节点的主键
         List<String> lastTask = lastTasks.stream()
                 .map(HistoricActivityInstance::getActivityId)
                 .limit(1)
                 .collect(Collectors.toList());
-
+        
         //七个参数分别是：
         // BPMNModel
         // 高光节点
@@ -198,9 +230,9 @@ public class ActivityQuickstartTest {
         // 批注字体名称
         // 生成默认关系图
         // 默认关系图映像文件名
-
+        
         BpmnModel model = repositoryService.getBpmnModel(processInstance.getProcessDefinitionId());
-
+        
         InputStream inputstream = generator.generateDiagram(
                 model, lastTask, Collections.emptyList(), "宋体", "宋体", "宋体", true, "test");
         String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
