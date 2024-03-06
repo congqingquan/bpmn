@@ -7,6 +7,8 @@ import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricProcessInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -23,8 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -114,9 +114,9 @@ public class ActivityQuickstartTest {
     public void process() {
         // 1. 根据部署信息获取对应的流程定义信息
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .deploymentId("8f6216eb-dada-11ee-a27d-20c19b7a45c3")
+                .deploymentId("1")
                 .singleResult();
-        
+
         // 2. 启动流程实例
         // 2.1 根据流程定义主键
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
@@ -139,9 +139,9 @@ public class ActivityQuickstartTest {
             System.out.println("流程实例描述：" + instance.getDescription());
         }
         
-        runtimeService.deleteProcessInstance(
-                processInstance.getProcessInstanceId(),
-                "Test" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+//        runtimeService.deleteProcessInstance(
+//                processInstance.getProcessInstanceId(),
+//                "Test" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
     }
     
     // ============================================ Task: TaskService ============================================
@@ -153,15 +153,15 @@ public class ActivityQuickstartTest {
     
     @Test
     public void task() throws IOException {
+        // act_ru_task
         // 1. 查询任务
         List<Task> taskList = taskService.createTaskQuery()
-                .processInstanceId("fc6319b9-dadb-11ee-a49c-20c19b7a45c3")
+                .processInstanceId("2501")
                 .list();
         for (Task task : taskList) {
             System.out.println("流程实例主键: " + task.getProcessInstanceId());
             System.out.println("任务主键: " + task.getId());
             System.out.println("任务名称: " + task.getName());
-            
         }
         // 2. 完成任务
         Task lastTask = taskList.get(taskList.size() - 1);
@@ -175,7 +175,52 @@ public class ActivityQuickstartTest {
     
     @Resource
     private HistoryService historyService;
-    
+
+    @Test
+    public void history() {
+        // 0. 查询最新的流程定义
+        ProcessDefinition latestProcessDefinition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
+                .latestVersion()
+                .singleResult();
+
+        // 1. 查询最新的流程定义的历史流程实例
+        List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
+                .processDefinitionId(latestProcessDefinition.getId())
+                .list();
+        for (HistoricProcessInstance historicProcessInstance : historicProcessInstanceList) {
+            System.out.println("历史流程实例主键：" + historicProcessInstance.getId());
+            System.out.println("历史流程实例名称：" + historicProcessInstance.getName());
+            System.out.println("历史流程实例所属定义主键：" + historicProcessInstance.getProcessDefinitionId());
+            System.out.println("历史流程实例所属定义Key：" + historicProcessInstance.getProcessDefinitionKey());
+        }
+
+        // 2. 查询最新的流程定义的 首个历史流程实例的 历史活动节点
+        String processInstanceId = historicProcessInstanceList.get(0).getId();
+        List<HistoricActivityInstance> historicActivityInstanceList = historyService.createHistoricActivityInstanceQuery()
+                .processInstanceId(processInstanceId)
+                .list();
+        for (HistoricActivityInstance historicActivityInstance : historicActivityInstanceList) {
+            System.out.println("历史活动节点主键：" + historicActivityInstance.getId());
+            System.out.println("历史活动节点活动主键(bpmn xml 中 task 标签上的 id 属性值)：" + historicActivityInstance.getId());
+            System.out.println("历史活动节点活动名称：" + historicActivityInstance.getActivityName());
+            System.out.println("历史活动节点活动类型：" + historicActivityInstance.getActivityType());
+            System.out.println("历史活动节点活动受托人：" + historicActivityInstance.getAssignee());
+        }
+
+        // 3. 查询历史流程实例的历史任务
+        List<HistoricTaskInstance> historicTaskInstanceList = historyService.createHistoricTaskInstanceQuery()
+                .processInstanceId(processInstanceId)
+                .list();
+        for (HistoricTaskInstance historicTaskInstance : historicTaskInstanceList) {
+            System.out.println("历史任务主键：" + historicTaskInstance.getId());
+            System.out.println("历史任务名称：" + historicTaskInstance.getName());
+            System.out.println("历史任务受托人：" + historicTaskInstance.getAssignee());
+            System.out.println("历史任务开始时间：" + historicTaskInstance.getStartTime());
+            System.out.println("历史任务结束时间：" + historicTaskInstance.getEndTime());
+        }
+    }
+
     // ============================================ ProcessDiagramGenerator ============================================
     
     /**

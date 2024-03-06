@@ -72,6 +72,9 @@ spring:
     database-schema-update: true
     # 解决频繁查询SQL问题
     async-executor-activate: false
+
+    # 主键策略：是否使用 uuid 作为主键
+    use-strong-uuids: false
   # datasource、tx 配置 (无缝衔接 spring.datasource 中的配置)
 
 mybatis-plus:
