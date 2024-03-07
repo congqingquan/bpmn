@@ -1,49 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
   <process id="withdrawal-approval-id" name="提现审核流程" isExecutable="true">
-    <startEvent id="sid-d7fadc19-b8ca-4fe8-b20b-444d002021ac" name="发起提现审核"/>
-    <userTask id="sid-45ef9c4b-2957-48d9-a641-e73397264e13" name="提交提现审批" activiti:assignee="employee">
+    <startEvent id="initiate-withrawal-approve-request" name="发起提现审核"/>
+    <userTask id="withdrawal-submit-approve-task-id" name="提交提现审批" activiti:assignee="${employee}">
       <extensionElements>
         <activiti:formProperty id="Property 1"/>
       </extensionElements>
     </userTask>
     <endEvent id="sid-7ec01e43-76a2-431a-bb97-a8a2c9a28d23" name="提现审核结束"/>
-    <userTask id="sid-c580be91-9603-47a4-870e-6b20220f809f" name="管理员审批" activiti:assignee="manager"/>
-    <sequenceFlow id="sid-ecccb6e0-6ecb-47c6-b43d-92bc4853e642" sourceRef="sid-d7fadc19-b8ca-4fe8-b20b-444d002021ac" targetRef="sid-45ef9c4b-2957-48d9-a641-e73397264e13"/>
-    <sequenceFlow id="sid-f23d13fd-d88c-4340-8958-55b2f181d6df" sourceRef="sid-45ef9c4b-2957-48d9-a641-e73397264e13" targetRef="sid-c580be91-9603-47a4-870e-6b20220f809f">
+    <userTask id="withdrawal-manager-approve-task-id" name="管理员审批" activiti:assignee="${manager}">
+      <extensionElements/>
+    </userTask>
+    <sequenceFlow id="sid-ecccb6e0-6ecb-47c6-b43d-92bc4853e642" sourceRef="initiate-withrawal-approve-request" targetRef="withdrawal-submit-approve-task-id"/>
+    <sequenceFlow id="sid-f23d13fd-d88c-4340-8958-55b2f181d6df" sourceRef="withdrawal-submit-approve-task-id" targetRef="withdrawal-manager-approve-task-id">
       <conditionExpression/>
     </sequenceFlow>
-    <sequenceFlow id="sid-119f4e22-3971-4ff8-90a0-2bf1d2d2adbf" sourceRef="sid-c580be91-9603-47a4-870e-6b20220f809f" targetRef="sid-d38f8af7-4983-4b9d-8544-e4c49954f3a5"/>
-    <userTask id="sid-d38f8af7-4983-4b9d-8544-e4c49954f3a5" name="财务审批" activiti:assignee="finance-officer"/>
-    <sequenceFlow id="sid-c30bef6d-82e8-48ac-bff6-18501dfda107" sourceRef="sid-d38f8af7-4983-4b9d-8544-e4c49954f3a5" targetRef="sid-7ec01e43-76a2-431a-bb97-a8a2c9a28d23"/>
+    <sequenceFlow id="sid-119f4e22-3971-4ff8-90a0-2bf1d2d2adbf" sourceRef="withdrawal-manager-approve-task-id" targetRef="withdrawal-financial-accounting-approve-task-id"/>
+    <userTask id="withdrawal-financial-accounting-approve-task-id" name="财务审批" activiti:assignee="${financialAccounting}"/>
+    <sequenceFlow id="sid-c30bef6d-82e8-48ac-bff6-18501dfda107" sourceRef="withdrawal-financial-accounting-approve-task-id" targetRef="sid-7ec01e43-76a2-431a-bb97-a8a2c9a28d23"/>
   </process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_withdrawal-approval">
     <bpmndi:BPMNPlane bpmnElement="withdrawal-approval-id" id="BPMNPlane_withdrawal-approval">
-      <bpmndi:BPMNShape id="sid-380d2416-5988-47cf-a520-c2a364c63898" bpmnElement="sid-d7fadc19-b8ca-4fe8-b20b-444d002021ac">
+      <bpmndi:BPMNShape id="sid-380d2416-5988-47cf-a520-c2a364c63898" bpmnElement="initiate-withrawal-approve-request">
         <omgdc:Bounds x="-105.0" y="21.8125" width="30.0" height="30.0"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="sid-4313df9f-0315-463a-ad07-be8a75999bb3" bpmnElement="sid-45ef9c4b-2957-48d9-a641-e73397264e13">
-        <omgdc:Bounds x="-30.0" y="14.3125" width="55.0" height="45.0"/>
+      <bpmndi:BPMNShape id="sid-4313df9f-0315-463a-ad07-be8a75999bb3" bpmnElement="withdrawal-submit-approve-task-id">
+        <omgdc:Bounds x="-30.0" y="13.775921" width="55.0" height="45.0"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="sid-eba96522-3d58-41f6-9ea6-f74577f1c309" bpmnElement="sid-7ec01e43-76a2-431a-bb97-a8a2c9a28d23">
         <omgdc:Bounds x="260.0" y="21.8125" width="30.0" height="30.0"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="sid-4be06e1f-3dea-4e05-8840-038588fca44a" bpmnElement="sid-c580be91-9603-47a4-870e-6b20220f809f">
+      <bpmndi:BPMNShape id="sid-4be06e1f-3dea-4e05-8840-038588fca44a" bpmnElement="withdrawal-manager-approve-task-id">
         <omgdc:Bounds x="69.0" y="14.3125" width="55.0" height="45.0"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="sid-3dbffcd3-3d32-4ca0-862f-262a612b231c" bpmnElement="sid-ecccb6e0-6ecb-47c6-b43d-92bc4853e642">
         <omgdi:waypoint x="-75.0" y="36.8125"/>
-        <omgdi:waypoint x="-30.0" y="36.8125"/>
+        <omgdi:waypoint x="-30.0" y="36.27592"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="sid-e4a9fc68-24c1-44ec-a3fa-c0021ad2bade" bpmnElement="sid-f23d13fd-d88c-4340-8958-55b2f181d6df">
-        <omgdi:waypoint x="25.0" y="36.8125"/>
+        <omgdi:waypoint x="25.0" y="36.27592"/>
         <omgdi:waypoint x="69.0" y="36.8125"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="sid-1d52af5e-d001-4318-bcdd-1ed44bb45679" bpmnElement="sid-119f4e22-3971-4ff8-90a0-2bf1d2d2adbf">
         <omgdi:waypoint x="124.0" y="36.8125"/>
         <omgdi:waypoint x="172.5" y="36.8125"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="sid-a47cca99-9615-40c2-997e-4308f9827924" bpmnElement="sid-d38f8af7-4983-4b9d-8544-e4c49954f3a5">
+      <bpmndi:BPMNShape id="sid-a47cca99-9615-40c2-997e-4308f9827924" bpmnElement="withdrawal-financial-accounting-approve-task-id">
         <omgdc:Bounds x="172.5" y="14.3125" width="55.0" height="45.0"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="edge-a4e92d5e-cc6b-4613-8222-74793c0a9db5" bpmnElement="sid-c30bef6d-82e8-48ac-bff6-18501dfda107">
