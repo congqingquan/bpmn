@@ -3,12 +3,10 @@
   <process id="withdrawal-approval-id" name="提现审核流程" isExecutable="true">
     <startEvent id="initiate-withrawal-approve-request" name="发起提现审核"/>
     <userTask id="withdrawal-submit-approve-task-id" name="提交提现审批" activiti:assignee="${employee}">
-      <extensionElements>
-        <activiti:formProperty id="Property 1"/>
-      </extensionElements>
+      <extensionElements></extensionElements>
     </userTask>
     <endEvent id="sid-7ec01e43-76a2-431a-bb97-a8a2c9a28d23" name="提现审核结束"/>
-    <userTask id="withdrawal-manager-approve-task-id" name="管理员审批" activiti:assignee="${manager}">
+    <userTask id="withdrawal-manager-approve-task-id" name="管理员审批" activiti:assignee="${manager}" activiti:candidateUsers="c1,c2">
       <extensionElements/>
     </userTask>
     <sequenceFlow id="sid-ecccb6e0-6ecb-47c6-b43d-92bc4853e642" sourceRef="initiate-withrawal-approve-request" targetRef="withdrawal-submit-approve-task-id"/>

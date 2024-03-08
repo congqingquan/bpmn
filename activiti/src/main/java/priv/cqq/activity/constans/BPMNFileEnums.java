@@ -17,7 +17,20 @@ public enum BPMNFileEnums {
             "withdrawal-approval-id",
             "processes/withdrawal-approval.bpmn20.xml",
             "processes/withdrawal-approval.withdrawal-approval-id.png"
+    ),
+    CANDIDATE_USER(
+            "候选人流程",
+            "candidate-user-id",
+            "processes/candidate-user.bpmn20.xml",
+            "processes/candidate-user.candidate-user-id.png"
+    ),
+    TASK_EXECUTION_LISTENER(
+            "任务-执行流-监听流程",
+            "task-execution-listener-id",
+            "processes/task-execution-listener.bpmn20.xml",
+            "processes/task-execution-listener.task-execution-listener-id.png"
     );
+
 
     private final String name;
 

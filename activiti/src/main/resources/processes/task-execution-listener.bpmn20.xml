@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
+  <process id="task-execution-listener-id" name="任务监听流程" isExecutable="true">
+    <startEvent id="start-node-id" name="开始节点"/>
+    <endEvent id="end-node-id" name="结束节点"/>
+    <userTask id="fill-out-node-id" name="填写中"/>
+    <userTask id="pm-approve-node-id" name="经理审批">
+      <extensionElements>
+        <activiti:taskListener class="priv.cqq.activity.listener.PMApproveTaskCompleteListener" event="complete"/>
+      </extensionElements>
+    </userTask>
+    <userTask id="hr-approve-node-id" name="人事审批">
+      <extensionElements>
+        <activiti:executionListener class="priv.cqq.activity.listener.HRApproveExecutionStartListener" event="start"/>
+        <activiti:executionListener class="priv.cqq.activity.listener.HRApproveExecutionEndListener" event="end"/>
+        <activiti:executionListener class="priv.cqq.activity.listener.HRApproveExecutionTakeListener" event="take"/>
+        
+        <activiti:taskListener class="priv.cqq.activity.listener.HRApproveTaskCreateListener" event="create"/>
+        <activiti:taskListener class="priv.cqq.activity.listener.HRApproveTaskCompleteListener" event="complete"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="sid-083fb433-0cbf-4fae-a69f-0f6b6c468bde" sourceRef="start-node-id" targetRef="fill-out-node-id"/>
+    <sequenceFlow id="sid-296dc068-8888-4f93-8e61-25b1ffcae592" sourceRef="fill-out-node-id" targetRef="pm-approve-node-id"/>
+    <sequenceFlow id="sid-c8eca728-f1ca-4af1-8fd4-bea0a5c0aff0" sourceRef="pm-approve-node-id" targetRef="hr-approve-node-id"/>
+    <sequenceFlow id="sid-737be8ea-ac5f-4c52-8648-ccc581d4dcf3" sourceRef="hr-approve-node-id" targetRef="end-node-id"/>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_task-execution-listener">
+    <bpmndi:BPMNPlane bpmnElement="task-execution-listener-id" id="BPMNPlane_task-execution-listener">
+      <bpmndi:BPMNShape id="sid-7fac2f98-8ea1-49d6-8ccf-7aff1df93bf2" bpmnElement="start-node-id">
+        <omgdc:Bounds x="-134.75" y="-28.75" width="30.0" height="30.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sid-023b7f9b-1623-4d85-ad42-ddadff2a5d38" bpmnElement="end-node-id">
+        <omgdc:Bounds x="125.25" y="-28.75" width="30.0" height="30.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sid-aa778441-a4bd-4f87-bbcd-b9534e5e7d9d" bpmnElement="fill-out-node-id">
+        <omgdc:Bounds x="-79.75" y="-31.25" width="45.0" height="35.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sid-34476f2d-7cbe-442e-8ab4-7d9c05335a2f" bpmnElement="pm-approve-node-id">
+        <omgdc:Bounds x="-9.75" y="-31.25" width="45.0" height="35.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sid-8a8916a1-fb50-4a12-a62e-a803991c1ed4" bpmnElement="hr-approve-node-id">
+        <omgdc:Bounds x="64.25" y="-31.25" width="45.0" height="35.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sid-48666663-5f7b-4cb9-8216-d847a52189d1" bpmnElement="sid-083fb433-0cbf-4fae-a69f-0f6b6c468bde">
+        <omgdi:waypoint x="-104.75" y="-13.75"/>
+        <omgdi:waypoint x="-79.75" y="-13.75"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sid-6a3962b9-f044-4b87-8516-110d213b8d30" bpmnElement="sid-296dc068-8888-4f93-8e61-25b1ffcae592">
+        <omgdi:waypoint x="-34.75" y="-13.75"/>
+        <omgdi:waypoint x="-9.75" y="-13.75"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sid-4cc680ea-5d75-48eb-972e-5bc544ade064" bpmnElement="sid-c8eca728-f1ca-4af1-8fd4-bea0a5c0aff0">
+        <omgdi:waypoint x="35.25" y="-13.75"/>
+        <omgdi:waypoint x="64.25" y="-13.75"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sid-125b25d1-e0cb-4a2c-aac0-c15f10aa7796" bpmnElement="sid-737be8ea-ac5f-4c52-8648-ccc581d4dcf3">
+        <omgdi:waypoint x="109.25" y="-13.75"/>
+        <omgdi:waypoint x="125.25" y="-13.75"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

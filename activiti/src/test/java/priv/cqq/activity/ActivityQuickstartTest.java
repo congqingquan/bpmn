@@ -1,7 +1,6 @@
 package priv.cqq.activity;
 
 import cn.hutool.core.map.MapBuilder;
-import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.ProcessEngines;
 import org.activiti.engine.RepositoryService;
@@ -15,23 +14,23 @@ import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
-import org.activiti.image.ProcessDiagramGenerator;
-import org.activiti.image.impl.DefaultProcessDiagramGenerator;
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import priv.cqq.activity.constans.BPMNFileEnums;
 
 import javax.annotation.Resource;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.time.Instant;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
+/**
+ * Activiti quickstart
+ *
+ * @author Qingquan.Cong
+ */
 @SpringBootTest
 public class ActivityQuickstartTest {
 
@@ -44,9 +43,6 @@ public class ActivityQuickstartTest {
     }
 
     // ============================================ Deploy: RepositoryService ============================================
-
-
-    // RepositoryService repositoryService = ActivitiHelper.getProcessEngine().getRepositoryService();
 
     @Resource
     private RepositoryService repositoryService;
@@ -108,8 +104,6 @@ public class ActivityQuickstartTest {
 
     // ============================================ Processes: RuntimeService ============================================
 
-    // RuntimeService runtimeService = ActivitiHelper.getProcessEngine().getRuntimeService();
-
     @Resource
     private RuntimeService runtimeService;
 
@@ -147,9 +141,25 @@ public class ActivityQuickstartTest {
 //                "Test" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
     }
 
-    // ============================================ Task: TaskService ============================================
 
-    // TaskService taskService = ActivitiHelper.getProcessEngine().getTaskService();
+    // 创建流程实例
+    public ProcessInstance createProcessInstance(BPMNFileEnums bpmnFileEnums, Map<String, Object> variables) {
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(bpmnFileEnums.getFileClasspath())
+                .addClasspathResource(bpmnFileEnums.getPicClasspath())
+                .name(bpmnFileEnums.getName())
+                .deploy();
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .deploymentId(deployment.getId())
+                .latestVersion()
+                .singleResult();
+
+        return runtimeService.startProcessInstanceById(processDefinition.getId(), variables);
+    }
+
+    // ============================================ Task: TaskService ============================================
 
     @Resource
     private TaskService taskService;
@@ -169,32 +179,6 @@ public class ActivityQuickstartTest {
         // 2. 完成任务
         Task lastTask = taskList.get(taskList.size() - 1);
         taskService.complete(lastTask.getId());
-    }
-
-    @Test
-    public void queryAssignee() {
-        ProcessDefinition latestProcessDefinition = repositoryService.createProcessDefinitionQuery()
-                .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
-                .latestVersion()
-                .singleResult();
-
-        List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
-                .processDefinitionId(latestProcessDefinition.getId())
-                .list();
-
-        String processInstanceId = historicProcessInstanceList.get(0).getId();
-
-        List<Task> taskList = taskService.createTaskQuery()
-                .processInstanceId(processInstanceId)
-                .taskAssignee("manager")
-                .list();
-
-        for (Task task : taskList) {
-            System.out.println("流程实例主键: " + task.getProcessInstanceId());
-            System.out.println("任务主键: " + task.getId());
-            System.out.println("任务名称: " + task.getName());
-            System.out.println("任务被托人: " + task.getAssignee());
-        }
     }
 
     @Test
@@ -246,6 +230,104 @@ public class ActivityQuickstartTest {
             }
 
             // clear();
+        }
+    }
+
+    @Test
+    public void queryAssignee() {
+        ProcessDefinition latestProcessDefinition = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
+                .latestVersion()
+                .singleResult();
+
+        List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
+                .processDefinitionId(latestProcessDefinition.getId())
+                .list();
+
+        String processInstanceId = historicProcessInstanceList.get(0).getId();
+
+        List<Task> taskList = taskService.createTaskQuery()
+                .processInstanceId(processInstanceId)
+                .taskAssignee("manager")
+                .list();
+
+        for (Task task : taskList) {
+            System.out.println("流程实例主键: " + task.getProcessInstanceId());
+            System.out.println("任务主键: " + task.getId());
+            System.out.println("任务名称: " + task.getName());
+            System.out.println("任务被托人: " + task.getAssignee());
+        }
+    }
+
+    @Test
+    public void candidateUser() {
+        clear();
+
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getFileClasspath())
+                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getPicClasspath())
+                .name(BPMNFileEnums.CANDIDATE_USER.getName())
+                .deploy();
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .deploymentId(deployment.getId())
+                .latestVersion()
+                .singleResult();
+
+        ProcessInstance processInstance = runtimeService.startProcessInstanceById(
+                processDefinition.getId(),
+                MapBuilder.<String, Object>create()
+                        .put("myAssignee", "CQQ")
+                        .map()
+        );
+
+        // 1. 完成第一个非候选人任务节点
+        Task firsetTask = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).singleResult();
+        taskService.complete(firsetTask.getId());
+
+        // 2. 查询候选人包含 c2 的任务节点
+        List<Task> c2TaskList = taskService.createTaskQuery()
+                .processInstanceId(processInstance.getProcessInstanceId())
+                .taskCandidateUser("c2")
+                .list();
+
+        for (Task task : c2TaskList) {
+            System.out.println("流程实例主键: " + task.getProcessInstanceId());
+            System.out.println("任务主键: " + task.getId());
+            System.out.println("任务名称: " + task.getName());
+            System.out.println("任务被托人: " + task.getAssignee());
+
+            // 设置候选人为 c2
+            // 1. 候选人节点不能设置默认的被托人，否则将某个候选人设置为被托人时会提示：Task '77516' is already claimed by someone else.
+            // 2. 设置完候选人节点后，该节点可再次被查询出进行执行
+            if ("candidate-user-node-id".equals(task.getTaskDefinitionKey()) && StringUtils.isBlank(task.getAssignee())) {
+                // 3. 如果设置的被托人不为 c2，也不会报错
+                // taskService.claim(task.getId(), "c3");
+                taskService.claim(task.getId(), "c2");
+                // 4. 任务节点分配完被托人为候选人后，在根据候选人查询任务列表，就查不出来了
+                System.out.println("候选人为 c2 的任务节点：" +
+                        taskService.createTaskQuery()
+                            .processInstanceId(processInstance.getProcessInstanceId())
+                            .taskCandidateUser("c2")
+                            .list()
+                            .size()
+                );
+            }
+        }
+
+        // 3. 完成后继的所有任务节点
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务被托人: " + task.getAssignee());
+                taskService.complete(task.getId());
+            }
         }
     }
 
@@ -305,8 +387,6 @@ public class ActivityQuickstartTest {
 
     // ============================================ History: HistoryService ============================================
 
-    // HistoryService historyService = ActivitiHelper.getProcessEngine().getHistoryService();
-
     @Resource
     private HistoryService historyService;
 
@@ -355,66 +435,56 @@ public class ActivityQuickstartTest {
         }
     }
 
-    // ============================================ ProcessDiagramGenerator ============================================
+    // ============================================ ManagementService ============================================
+
+    //    @Resource
+    //    private ManagementService managementService;
+
+    // ============================================ DynamicBpmnService ============================================
+
+    //    @Resource
+    //    private DynamicBpmnService dynamicBpmnService;
+
+    // ============================================ Listener ============================================
 
     /**
-     * 生成流程图 SVG 图片
-     *
-     * <dependency>
-     * <groupId>org.activiti</groupId>
-     * <artifactId>activiti-image-generator</artifactId>
-     * <version>${activiti-boot-starter.version}</version>
-     * </dependency>
+     可监听的任务状态：
+     1. create: 创建任务
+     2. assignment: 分配被托人
+     3. complete: 完成任务
+     4. delete: 删除任务
+
+     可监听的执行流状态：
+     1. start: 任务节点前
+     2. end: 任务节点后
+     3. take: 节点间的连线
+
+     执行流监听与任务监听间的执行顺序：
+     1. 开始节点：start -> end
+     2. 连线：take
+     3. 任务节点ExecutionListener： start
+     4. 任务节点TaskListener：create -> assignment -> complete
+     5. 任务节点ExecutionListener： end
+     6. 连线：take
+     7. 结束节点：start -> end
      */
     @Test
-    public void generateSVG() throws IOException {
-        BpmnModel bpmnModel = repositoryService.getBpmnModel("withdrawal-approval-id:1:8f67e34e-dada-11ee-a27d-20c19b7a45c3");
-        ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
-        //Inputstream inputstream generator.generateDiagram(bpmnModel,lastTask,Collections.emptyList(),
-        InputStream inputstream = generator.generateDiagram(bpmnModel, "endEvent", "宋体", "宋体");
-        String imageName = "image-" + Instant.now().getEpochSecond() + "svg";
-        FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
-    }
+    public void taskExecutionListener() {
+        clear();
 
-    @Test
-    public void generateCurrentSVG() throws IOException {
+        ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.TASK_EXECUTION_LISTENER, new HashMap<>());
 
-        ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
-
-        // 获取运行中的流程实例
-        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
-                .processInstanceId("fc6319b9-dadb-11ee-a49c-20c19b7a45c3")
-                .singleResult();
-
-        // 获取运行中的流程实例的历史节点列表
-        List<HistoricActivityInstance> lastTasks =
-                historyService.createHistoricActivityInstanceQuery()
-                        .processInstanceId(processInstance.getId())
-                        .orderByHistoricActivityInstanceStartTime()
-                        .desc()
-                        .list();
-
-        // 收集最后一个历史活动节点的主键
-        List<String> lastTask = lastTasks.stream()
-                .map(HistoricActivityInstance::getActivityId)
-                .limit(1)
-                .collect(Collectors.toList());
-
-        //七个参数分别是：
-        // BPMNModel
-        // 高光节点
-        // 高光顺序流
-        // 活动字体名称
-        // 标签字体名称
-        // 批注字体名称
-        // 生成默认关系图
-        // 默认关系图映像文件名
-
-        BpmnModel model = repositoryService.getBpmnModel(processInstance.getProcessDefinitionId());
-
-        InputStream inputstream = generator.generateDiagram(
-                model, lastTask, Collections.emptyList(), "宋体", "宋体", "宋体", true, "test");
-        String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
-        FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务被托人: " + task.getAssignee());
+                taskService.complete(task.getId());
+            }
+        }
     }
 }
