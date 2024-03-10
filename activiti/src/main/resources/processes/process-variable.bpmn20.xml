@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
+  <process id="process-variable-id" name="流程变量测试流程" isExecutable="true">
+    <startEvent id="startEvent1"></startEvent>
+    <endEvent id="sid-A996F61B-A6DB-4640-BE68-4CB708BF6110"></endEvent>
+    <userTask id="set-global-var-task-id" name="设置全局变量"></userTask>
+    <userTask id="lt10-task-id" name="&lt; 10"></userTask>
+    <userTask id="gte10-lte15-task-id" name="[10, 15]"></userTask>
+    <userTask id="gt15-task-id" name="&gt; 15"></userTask>
+    <sequenceFlow id="sid-B81F94B6-61FF-4A39-BF85-2AA80EB307C5" sourceRef="startEvent1" targetRef="set-global-var-task-id"></sequenceFlow>
+    <sequenceFlow id="sid-44AF659B-4E0E-4D82-96CE-1D3165042D69" sourceRef="lt10-task-id" targetRef="sid-A996F61B-A6DB-4640-BE68-4CB708BF6110"></sequenceFlow>
+    <sequenceFlow id="sid-4562E4F8-904C-4227-A264-7EF93D3DC331" sourceRef="gte10-lte15-task-id" targetRef="sid-A996F61B-A6DB-4640-BE68-4CB708BF6110"></sequenceFlow>
+    <sequenceFlow id="sid-9A3F10DC-6DF3-459F-B5EC-6D8BE1A99FD8" sourceRef="gt15-task-id" targetRef="sid-A996F61B-A6DB-4640-BE68-4CB708BF6110"></sequenceFlow>
+    <sequenceFlow id="sid-C8C5DEFB-AF11-4C83-BEB8-4F0B392A945D" sourceRef="set-global-var-task-id" targetRef="lt10-task-id">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${myVar < 10}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sid-B21F2D08-A7A8-4BE1-81C8-E8BD788BBA4B" sourceRef="set-global-var-task-id" targetRef="gte10-lte15-task-id">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${myVar  >= 10 && myVar <= 15}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sid-859EE5FD-76D2-4BCD-8ABF-CF9E6B5113BF" sourceRef="set-global-var-task-id" targetRef="gt15-task-id">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${myVar > 15}]]></conditionExpression>
+    </sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_process-variable-id">
+    <bpmndi:BPMNPlane bpmnElement="process-variable-id" id="BPMNPlane_process-variable-id">
+      <bpmndi:BPMNShape bpmnElement="startEvent1" id="BPMNShape_startEvent1">
+        <omgdc:Bounds height="30.0" width="30.0" x="90.0" y="220.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="sid-A996F61B-A6DB-4640-BE68-4CB708BF6110" id="BPMNShape_sid-A996F61B-A6DB-4640-BE68-4CB708BF6110">
+        <omgdc:Bounds height="28.0" width="28.0" x="555.0" y="221.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="set-global-var-task-id" id="BPMNShape_set-global-var-task-id">
+        <omgdc:Bounds height="80.0" width="100.0" x="195.0" y="195.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="lt10-task-id" id="BPMNShape_lt10-task-id">
+        <omgdc:Bounds height="80.0" width="100.0" x="345.0" y="75.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gte10-lte15-task-id" id="BPMNShape_gte10-lte15-task-id">
+        <omgdc:Bounds height="80.0" width="100.0" x="345.0" y="195.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gt15-task-id" id="BPMNShape_gt15-task-id">
+        <omgdc:Bounds height="80.0" width="100.0" x="345.0" y="315.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="sid-B21F2D08-A7A8-4BE1-81C8-E8BD788BBA4B" id="BPMNEdge_sid-B21F2D08-A7A8-4BE1-81C8-E8BD788BBA4B">
+        <omgdi:waypoint x="295.0" y="235.0"></omgdi:waypoint>
+        <omgdi:waypoint x="345.0" y="235.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-B81F94B6-61FF-4A39-BF85-2AA80EB307C5" id="BPMNEdge_sid-B81F94B6-61FF-4A39-BF85-2AA80EB307C5">
+        <omgdi:waypoint x="120.0" y="235.0"></omgdi:waypoint>
+        <omgdi:waypoint x="195.0" y="235.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-C8C5DEFB-AF11-4C83-BEB8-4F0B392A945D" id="BPMNEdge_sid-C8C5DEFB-AF11-4C83-BEB8-4F0B392A945D">
+        <omgdi:waypoint x="295.0" y="195.0"></omgdi:waypoint>
+        <omgdi:waypoint x="345.0" y="155.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-44AF659B-4E0E-4D82-96CE-1D3165042D69" id="BPMNEdge_sid-44AF659B-4E0E-4D82-96CE-1D3165042D69">
+        <omgdi:waypoint x="445.0" y="149.48275862068965"></omgdi:waypoint>
+        <omgdi:waypoint x="557.4750209971858" y="227.05173861874877"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-4562E4F8-904C-4227-A264-7EF93D3DC331" id="BPMNEdge_sid-4562E4F8-904C-4227-A264-7EF93D3DC331">
+        <omgdi:waypoint x="445.0" y="235.0"></omgdi:waypoint>
+        <omgdi:waypoint x="555.0" y="235.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-859EE5FD-76D2-4BCD-8ABF-CF9E6B5113BF" id="BPMNEdge_sid-859EE5FD-76D2-4BCD-8ABF-CF9E6B5113BF">
+        <omgdi:waypoint x="295.0" y="275.0"></omgdi:waypoint>
+        <omgdi:waypoint x="345.0" y="315.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-9A3F10DC-6DF3-459F-B5EC-6D8BE1A99FD8" id="BPMNEdge_sid-9A3F10DC-6DF3-459F-B5EC-6D8BE1A99FD8">
+        <omgdi:waypoint x="445.0" y="320.51724137931035"></omgdi:waypoint>
+        <omgdi:waypoint x="557.4750209971858" y="242.94826138125123"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

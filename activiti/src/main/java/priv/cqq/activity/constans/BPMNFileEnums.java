@@ -29,6 +29,12 @@ public enum BPMNFileEnums {
             "task-execution-listener-id",
             "processes/task-execution-listener.bpmn20.xml",
             "processes/task-execution-listener.task-execution-listener-id.png"
+    ),
+    PROCESS_VARIABLE(
+            "流程变量流程",
+            "process-variable",
+            "processes/process-variable.bpmn20.xml",
+            "processes/process-variable.process-variable-id.svg"
     );
 
 

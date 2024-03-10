@@ -19,9 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import priv.cqq.activity.constans.BPMNFileEnums;
+import priv.cqq.activity.util.ActivitiHelper;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +36,20 @@ import java.util.Map;
  */
 @SpringBootTest
 public class ActivityQuickstartTest {
-
+    
     // ============================================ Engine ============================================
-
+    
     @Test
     public void createProcessEngine() {
         // Auto create table
         ProcessEngines.getDefaultProcessEngine();
     }
-
+    
     // ============================================ Deploy: RepositoryService ============================================
-
+    
     @Resource
     private RepositoryService repositoryService;
-
+    
     @Test
     public void deployment() {
         // 1. 流程部署 (注意：同时会创建部署信息、流程定义信息数据)
@@ -54,17 +57,17 @@ public class ActivityQuickstartTest {
                 .createDeployment()
                 // 1) 流数据加载
                 // .addInputStream()
-
+                
                 // 2) 压缩包加载
                 // .addZipInputStream()
-
+                
                 // 3) classpath 加载
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getFileClasspath())
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
                 .name(BPMNFileEnums.WITHDRAWAL.getName())
                 .deploy();
         System.out.println(deployment);
-
+        
         // 2.
         // 2.1 查询部署信息
         Deployment queriedDeployment = repositoryService
@@ -74,7 +77,7 @@ public class ActivityQuickstartTest {
         System.out.println("部署主键：" + queriedDeployment.getId());
         System.out.println("部署名称：" + queriedDeployment.getName());
         System.out.println("部署KEY：" + queriedDeployment.getKey());
-
+        
         // 2.2 查询与部署信息对应的流程定义信息
         ProcessDefinition processDefinition = repositoryService
                 .createProcessDefinitionQuery()
@@ -83,7 +86,7 @@ public class ActivityQuickstartTest {
         System.out.println("流程定义主键：" + processDefinition.getId());
         System.out.println("流程定义名称：" + processDefinition.getName());
         System.out.println("流程定义KEY：" + processDefinition.getKey() + "\t" + "枚举 Key: " + BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId());
-
+        
         // 3. 删除部署信息、流程定义信息
         // List<Deployment> deploymentList = repositoryService.createDeploymentQuery().list();
         // for (Deployment d : deploymentList) {
@@ -91,7 +94,7 @@ public class ActivityQuickstartTest {
         // repositoryService.deleteDeployment(d.getId(), true);
         // }
     }
-
+    
     @Test
     public void clear() {
         // 1. 删除部署信息、流程定义信息
@@ -101,48 +104,70 @@ public class ActivityQuickstartTest {
             repositoryService.deleteDeployment(d.getId(), true);
         }
     }
-
+    
     // ============================================ Processes: RuntimeService ============================================
-
+    
     @Resource
     private RuntimeService runtimeService;
-
+    
     @Test
     public void process() {
+        // clear();
+        
         // 1. 根据部署信息获取对应的流程定义信息
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getFileClasspath())
+                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
+                .name(BPMNFileEnums.WITHDRAWAL.getName())
+                .deploy();
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .deploymentId("1")
+                .deploymentId(deployment.getId())
+                .latestVersion()
                 .singleResult();
-
+        
         // 2. 启动流程实例
+        Map<String, Object> variables = MapBuilder.<String, Object>create()
+                .put("employee", "employee-CQQ")
+                .put("manager", "manager-CQQ")
+                .put("financialAccounting", "financial-accounting-CQQ")
+                .map();
+        
         // 2.1 根据流程定义主键
-        ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
+        ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId(), variables);
         // 2.2 根据流程定义Key
         // ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(processDefinition.getKey());
-
+        
         System.out.println("流程实例主键：" + processInstance.getId());
         System.out.println("流程实例主键：" + processInstance.getProcessInstanceId());
         System.out.println("流程实例名称：" + processInstance.getName());
         System.out.println("流程实例描述：" + processInstance.getDescription());
-
+        
         // 3. 查询流程实例
         List<ProcessInstance> processInstanceList = runtimeService.createProcessInstanceQuery()
                 .processDefinitionId(processInstance.getProcessDefinitionId())
                 .list();
+        
         for (ProcessInstance instance : processInstanceList) {
             System.out.println("流程实例主键：" + instance.getId());
             System.out.println("流程实例主键：" + instance.getProcessInstanceId());
             System.out.println("流程实例名称：" + instance.getName());
             System.out.println("流程实例描述：" + instance.getDescription());
         }
-
-//        runtimeService.deleteProcessInstance(
-//                processInstance.getProcessInstanceId(),
-//                "Test" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+        
+        // 4. 删除流程实例 (Activiti 会进行级联的对流程以及相关的表进行逻辑删除，如：ACT_HI_PROCINST/ACT_HI_ACTINST/ACT_HI_TASKINST/ACT_RU_EXECUTION...，如果涉及变量，还会删除变量表)
+        runtimeService.deleteProcessInstance(
+                processInstance.getProcessInstanceId(),
+                "Cancel process: " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
     }
-
-
+    
+    
     // 创建流程实例
+    public ProcessInstance createProcessInstance(BPMNFileEnums bpmnFileEnums) {
+        return createProcessInstance(bpmnFileEnums, new HashMap<>());
+    }
+    
     public ProcessInstance createProcessInstance(BPMNFileEnums bpmnFileEnums, Map<String, Object> variables) {
         Deployment deployment = repositoryService
                 .createDeployment()
@@ -150,20 +175,20 @@ public class ActivityQuickstartTest {
                 .addClasspathResource(bpmnFileEnums.getPicClasspath())
                 .name(bpmnFileEnums.getName())
                 .deploy();
-
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
                 .singleResult();
-
+        
         return runtimeService.startProcessInstanceById(processDefinition.getId(), variables);
     }
-
+    
     // ============================================ Task: TaskService ============================================
-
+    
     @Resource
     private TaskService taskService;
-
+    
     @Test
     public void task() throws IOException {
         // act_ru_task
@@ -180,7 +205,7 @@ public class ActivityQuickstartTest {
         Task lastTask = taskList.get(taskList.size() - 1);
         taskService.complete(lastTask.getId());
     }
-
+    
     @Test
     public void setAssignee() {
         Deployment deployment = repositoryService
@@ -189,14 +214,14 @@ public class ActivityQuickstartTest {
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
                 .name(BPMNFileEnums.WITHDRAWAL.getName())
                 .deploy();
-
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
                 .singleResult();
-
+        
         // Must set the property named employee on first node otherwise will throw the exception:  Unknown property used in expression: ${employee}
-
+        
         // 1. 在流程创建的时候就初始化所有被托人 (会新增操作表: act_hi_detail / act_hi_varinst / act_ru_variable), 每个结点都会
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(
                 processDefinition.getId(),
@@ -206,7 +231,7 @@ public class ActivityQuickstartTest {
                         // .put("financialAccounting", "financial-accounting-CQQ")
                         .map()
         );
-
+        
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
              !CollectionUtils.isEmpty(taskList);
              taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
@@ -228,29 +253,29 @@ public class ActivityQuickstartTest {
                 }
                 taskService.complete(task.getId());
             }
-
+            
             // clear();
         }
     }
-
+    
     @Test
     public void queryAssignee() {
         ProcessDefinition latestProcessDefinition = repositoryService.createProcessDefinitionQuery()
                 .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
                 .latestVersion()
                 .singleResult();
-
+        
         List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
                 .processDefinitionId(latestProcessDefinition.getId())
                 .list();
-
+        
         String processInstanceId = historicProcessInstanceList.get(0).getId();
-
+        
         List<Task> taskList = taskService.createTaskQuery()
                 .processInstanceId(processInstanceId)
                 .taskAssignee("manager")
                 .list();
-
+        
         for (Task task : taskList) {
             System.out.println("流程实例主键: " + task.getProcessInstanceId());
             System.out.println("任务主键: " + task.getId());
@@ -258,46 +283,46 @@ public class ActivityQuickstartTest {
             System.out.println("任务被托人: " + task.getAssignee());
         }
     }
-
+    
     @Test
     public void candidateUser() {
         clear();
-
+        
         Deployment deployment = repositoryService
                 .createDeployment()
                 .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getFileClasspath())
                 .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getPicClasspath())
                 .name(BPMNFileEnums.CANDIDATE_USER.getName())
                 .deploy();
-
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
                 .singleResult();
-
+        
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(
                 processDefinition.getId(),
                 MapBuilder.<String, Object>create()
                         .put("myAssignee", "CQQ")
                         .map()
         );
-
+        
         // 1. 完成第一个非候选人任务节点
         Task firsetTask = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).singleResult();
         taskService.complete(firsetTask.getId());
-
+        
         // 2. 查询候选人包含 c2 的任务节点
         List<Task> c2TaskList = taskService.createTaskQuery()
                 .processInstanceId(processInstance.getProcessInstanceId())
                 .taskCandidateUser("c2")
                 .list();
-
+        
         for (Task task : c2TaskList) {
             System.out.println("流程实例主键: " + task.getProcessInstanceId());
             System.out.println("任务主键: " + task.getId());
             System.out.println("任务名称: " + task.getName());
             System.out.println("任务被托人: " + task.getAssignee());
-
+            
             // 设置候选人为 c2
             // 1. 候选人节点不能设置默认的被托人，否则将某个候选人设置为被托人时会提示：Task '77516' is already claimed by someone else.
             // 2. 设置完候选人节点后，该节点可再次被查询出进行执行
@@ -308,14 +333,14 @@ public class ActivityQuickstartTest {
                 // 4. 任务节点分配完被托人为候选人后，在根据候选人查询任务列表，就查不出来了
                 System.out.println("候选人为 c2 的任务节点：" +
                         taskService.createTaskQuery()
-                            .processInstanceId(processInstance.getProcessInstanceId())
-                            .taskCandidateUser("c2")
-                            .list()
-                            .size()
+                                .processInstanceId(processInstance.getProcessInstanceId())
+                                .taskCandidateUser("c2")
+                                .list()
+                                .size()
                 );
             }
         }
-
+        
         // 3. 完成后继的所有任务节点
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
              !CollectionUtils.isEmpty(taskList);
@@ -330,7 +355,7 @@ public class ActivityQuickstartTest {
             }
         }
     }
-
+    
     @Test
     public void comment() {
         Deployment deployment = repositoryService
@@ -339,12 +364,12 @@ public class ActivityQuickstartTest {
                 .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
                 .name(BPMNFileEnums.WITHDRAWAL.getName())
                 .deploy();
-
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
                 .singleResult();
-
+        
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(
                 processDefinition.getId(),
                 MapBuilder.<String, Object>create()
@@ -353,13 +378,13 @@ public class ActivityQuickstartTest {
                         .put("financialAccounting", "financial-accounting-CQQ")
                         .map()
         );
-
+        
         List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
-
+        
         for (Task task : taskList) {
             taskService.addComment(task.getId(), processInstance.getProcessInstanceId(), "MyCommentType", "测试评论");
         }
-
+        
         // 默认查询 TYPE_ = 'comment' 的评论：select * from ACT_HI_COMMENT where TASK_ID_ = ? and TYPE_ = 'comment' order by TIME_ desc
         for (Task task : taskList) {
             List<Comment> taskComments = taskService.getTaskComments(task.getId());
@@ -371,7 +396,7 @@ public class ActivityQuickstartTest {
                 System.out.println("评论用户主键：" + taskComment.getUserId());
             }
         }
-
+        
         // 查询自定义类型评论
         for (Task task : taskList) {
             List<Comment> taskComments = taskService.getTaskComments(task.getId(), "MyCommentType");
@@ -384,12 +409,12 @@ public class ActivityQuickstartTest {
             }
         }
     }
-
+    
     // ============================================ History: HistoryService ============================================
-
+    
     @Resource
     private HistoryService historyService;
-
+    
     @Test
     public void history() {
         // 0. 查询最新的流程定义
@@ -397,7 +422,7 @@ public class ActivityQuickstartTest {
                 .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
                 .latestVersion()
                 .singleResult();
-
+        
         // 1. 查询最新的流程定义的历史流程实例
         List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
                 .processDefinitionId(latestProcessDefinition.getId())
@@ -408,7 +433,7 @@ public class ActivityQuickstartTest {
             System.out.println("历史流程实例所属定义主键：" + historicProcessInstance.getProcessDefinitionId());
             System.out.println("历史流程实例所属定义Key：" + historicProcessInstance.getProcessDefinitionKey());
         }
-
+        
         // 2. 查询最新的流程定义的 首个历史流程实例的 历史活动节点
         String processInstanceId = historicProcessInstanceList.get(0).getId();
         List<HistoricActivityInstance> historicActivityInstanceList = historyService.createHistoricActivityInstanceQuery()
@@ -421,7 +446,7 @@ public class ActivityQuickstartTest {
             System.out.println("历史活动节点活动类型：" + historicActivityInstance.getActivityType());
             System.out.println("历史活动节点活动受托人：" + historicActivityInstance.getAssignee());
         }
-
+        
         // 3. 查询历史流程实例的历史任务
         List<HistoricTaskInstance> historicTaskInstanceList = historyService.createHistoricTaskInstanceQuery()
                 .processInstanceId(processInstanceId)
@@ -434,46 +459,46 @@ public class ActivityQuickstartTest {
             System.out.println("历史任务结束时间：" + historicTaskInstance.getEndTime());
         }
     }
-
+    
     // ============================================ ManagementService ============================================
-
+    
     //    @Resource
     //    private ManagementService managementService;
-
+    
     // ============================================ DynamicBpmnService ============================================
-
+    
     //    @Resource
     //    private DynamicBpmnService dynamicBpmnService;
-
+    
     // ============================================ Listener ============================================
-
+    
     /**
-     可监听的任务状态：
-     1. create: 创建任务
-     2. assignment: 分配被托人
-     3. complete: 完成任务
-     4. delete: 删除任务
-
-     可监听的执行流状态：
-     1. start: 任务节点前
-     2. end: 任务节点后
-     3. take: 节点间的连线
-
-     执行流监听与任务监听间的执行顺序：
-     1. 开始节点：start -> end
-     2. 连线：take
-     3. 任务节点ExecutionListener： start
-     4. 任务节点TaskListener：create -> assignment -> complete
-     5. 任务节点ExecutionListener： end
-     6. 连线：take
-     7. 结束节点：start -> end
+     * 可监听的任务状态：
+     * 1. create: 创建任务
+     * 2. assignment: 分配被托人
+     * 3. complete: 完成任务
+     * 4. delete: 删除任务
+     * <p>
+     * 可监听的执行流状态：
+     * 1. start: 任务节点前
+     * 2. end: 任务节点后
+     * 3. take: 节点间的连线
+     * <p>
+     * 执行流监听与任务监听间的执行顺序：
+     * 1. 开始节点：start -> end
+     * 2. 连线：take
+     * 3. 任务节点ExecutionListener： start
+     * 4. 任务节点TaskListener：create -> assignment -> complete
+     * 5. 任务节点ExecutionListener： end
+     * 6. 连线：take
+     * 7. 结束节点：start -> end
      */
     @Test
     public void taskExecutionListener() {
         clear();
-
+        
         ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.TASK_EXECUTION_LISTENER, new HashMap<>());
-
+        
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
              !CollectionUtils.isEmpty(taskList);
              taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
@@ -483,6 +508,36 @@ public class ActivityQuickstartTest {
                 System.out.println("任务主键: " + task.getId());
                 System.out.println("任务名称: " + task.getName());
                 System.out.println("任务被托人: " + task.getAssignee());
+                taskService.complete(task.getId());
+            }
+        }
+    }
+    
+    // ============================================ Variables ============================================
+    
+    @Test
+    public void vars() {
+        clear();
+        
+        ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.PROCESS_VARIABLE);
+        
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务被托人: " + task.getAssignee());
+                
+                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                
+                if ("set-global-var-task-id".equals(task.getTaskDefinitionKey())) {
+                    // localScope: 默认为 false，即只在当前 task 范围内生效
+                    taskService.complete(task.getId(), MapBuilder.<String, Object>create().put("myVar", 5).map(), false);
+                    continue;
+                }
                 taskService.complete(task.getId());
             }
         }

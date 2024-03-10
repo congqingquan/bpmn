@@ -1,13 +1,12 @@
 package priv.cqq.activity;
 
+import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricActivityInstance;
-import org.activiti.engine.repository.Deployment;
-import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.activiti.image.impl.DefaultProcessDiagramGenerator;
@@ -17,6 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import priv.cqq.activity.constans.BPMNFileEnums;
 
 import javax.annotation.Resource;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +46,8 @@ public class ProcessDiagramGeneratorTest {
 
     @Resource
     private TaskService taskService;
+    
+    private final XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
 
     // ============================================ ProcessDiagramGenerator ============================================
 
@@ -57,24 +61,30 @@ public class ProcessDiagramGeneratorTest {
      * </dependency>
      */
     @Test
-    public void generateSVG() throws IOException {
-        Deployment deployment = repositoryService
-                .createDeployment()
-                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getFileClasspath())
-                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getPicClasspath())
-                .name(BPMNFileEnums.CANDIDATE_USER.getName())
-                .deploy();
-
-        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .deploymentId(deployment.getId())
-                .singleResult();
-
-        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinition.getId());
-        ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
-        //Inputstream inputstream generator.generateDiagram(bpmnModel,lastTask,Collections.emptyList(),
-        InputStream inputstream = generator.generateDiagram(bpmnModel, "endEvent", "宋体", "宋体");
-        String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
-        FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
+    public void generateSVG() {
+        BPMNFileEnums bpmnFileEnum = BPMNFileEnums.PROCESS_VARIABLE;
+        
+        // 加载 BPMN 文件
+        try (InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream(bpmnFileEnum.getFileClasspath())) {
+            XMLStreamReader xmlStreamReader = xmlInputFactory.createXMLStreamReader(bpmnStream);
+            BpmnModel bpmnModel = new BpmnXMLConverter().convertToBpmnModel(xmlStreamReader);
+            
+            // 生成 SVG 图像
+            if (bpmnModel != null && bpmnModel.getLocationMap().size() > 0) {
+                // 创建图像生成器
+                ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
+                // 生成流程图 已启动的task 高亮
+                //                return generator.generateDiagram(model,
+                //                        runtimeService.getActiveActivityIds(processInstanceId));
+                InputStream inputstream = generator.generateDiagram(bpmnModel, "宋体", "宋体", "宋体");
+                String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
+                FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
+            }
+            
+            xmlStreamReader.close();
+        } catch (IOException | XMLStreamException e) {
+            throw new RuntimeException("Generate svg file error");
+        }
     }
 
     @Test
