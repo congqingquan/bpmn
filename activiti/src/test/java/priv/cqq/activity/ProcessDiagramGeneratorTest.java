@@ -62,7 +62,7 @@ public class ProcessDiagramGeneratorTest {
      */
     @Test
     public void generateSVG() {
-        BPMNFileEnums bpmnFileEnum = BPMNFileEnums.PROCESS_VARIABLE;
+        BPMNFileEnums bpmnFileEnum = BPMNFileEnums.PARALLEL_GATEWAY;
         
         // 加载 BPMN 文件
         try (InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream(bpmnFileEnum.getFileClasspath())) {

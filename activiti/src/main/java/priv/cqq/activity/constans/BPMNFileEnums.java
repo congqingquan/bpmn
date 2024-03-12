@@ -35,9 +35,20 @@ public enum BPMNFileEnums {
             "process-variable",
             "processes/process-variable.bpmn20.xml",
             "processes/process-variable.process-variable-id.svg"
+    ),
+    EXCLUSIVE_GATEWAY(
+        "排他网关流程",
+        "exclusive-gateway",
+        "processes/exclusive-gateway.bpmn20.xml",
+        "processes/exclusive-gateway.exclusive-gateway-id.svg"
+    ),
+    PARALLEL_GATEWAY(
+            "并行网关流程",
+            "parallel-gateway",
+            "processes/parallel-gateway.bpmn20.xml",
+            "processes/parallel-gateway.parallel-gateway-id.svg"
     );
-
-
+    
     private final String name;
 
     private final String processDefinitionId;

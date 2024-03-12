@@ -542,4 +542,81 @@ public class ActivityQuickstartTest {
             }
         }
     }
+    
+    // ============================================ Gateway ============================================
+    
+    // TODO: 观察排他、并行网关操作的表
+    
+    /**
+        排他网关的逻辑等价于：
+     
+        if() {}
+        else if() {}
+        else throw new Exception("No outgoing sequence flow of the exclusive gateway 'sid-9F9EB010-CBB0-449B-ABC6-96663081191C' could be selected for continuing the process")
+     
+        特别说明：在不使用排他网关，直接在 line 上设置 condition expression，若也没有找到匹配的 line 也会抛出上面的异常。
+     */
+    @Test
+    public void exclusiveGateway() {
+        ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.EXCLUSIVE_GATEWAY);
+        
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务被托人: " + task.getAssignee());
+                
+                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                
+                if ("submit-leave-approve-task-id".equals(task.getTaskDefinitionKey())) {
+                    // No outgoing sequence flow of the exclusive gateway 'sid-9F9EB010-CBB0-449B-ABC6-96663081191C' could be selected for continuing the process
+                    // taskService.complete(task.getId(), MapBuilder.<String, Object>create().put("day", 5).map(), false);
+                    
+                    taskService.complete(task.getId(), MapBuilder.<String, Object>create().put("day", 10).map(), false);
+                    continue;
+                }
+                taskService.complete(task.getId());
+            }
+        }
+    }
+    
+    /**
+        并行网关的逻辑等价于：
+        
+        if (true) {}
+        if (true) {}
+        ...
+     
+        即多链路都会无条件执行
+     */
+    @Test
+    public void parallelGateway() {
+        ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.PARALLEL_GATEWAY);
+        
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            // 执行完并行网关后，会发现 taskList 的 size 为 2，即多个链路的任务都会被查询出来
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务被托人: " + task.getAssignee());
+                
+                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                
+                if ("submit-leave-approve-task-id".equals(task.getTaskDefinitionKey())) {
+                    // 测试 line 上的 condition expression 是否会生效
+                    taskService.complete(task.getId(), MapBuilder.<String, Object>create().put("day", 5).map(), false);
+                    continue;
+                }
+                taskService.complete(task.getId());
+            }
+        }
+    }
 }
