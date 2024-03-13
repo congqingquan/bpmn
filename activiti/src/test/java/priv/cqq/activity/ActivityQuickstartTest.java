@@ -545,8 +545,6 @@ public class ActivityQuickstartTest {
     
     // ============================================ Gateway ============================================
     
-    // TODO: 观察排他、并行网关操作的表
-    
     /**
         排他网关的逻辑等价于：
      
@@ -554,10 +552,12 @@ public class ActivityQuickstartTest {
         else if() {}
         else throw new Exception("No outgoing sequence flow of the exclusive gateway 'sid-9F9EB010-CBB0-449B-ABC6-96663081191C' could be selected for continuing the process")
      
-        特别说明：在不使用排他网关，直接在 line 上设置 condition expression，若也没有找到匹配的 line 也会抛出上面的异常。
+        特别说明：在不使用排他网关，直接在 line 上设置 condition expression，若也没有找到匹配的 line 也会抛出上面的异常。所以可以理解为：默认就是排他网关。
      */
     @Test
     public void exclusiveGateway() {
+        clear();
+        
         ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.EXCLUSIVE_GATEWAY);
         
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
@@ -591,10 +591,18 @@ public class ActivityQuickstartTest {
         if (true) {}
         ...
      
-        即多链路都会无条件执行
+        即多链路都会无条件执行，即使设置了 condition expression，也不会进行判断。
+     
+        并行网关在数据上的体现：经过并行网关后，第一节点继续在当前执行实例上执行，剩余的其他链路会独立创建各自的执行实例执行到最后。也就是说后继的任务节点会被各个执行实例都执行一次。
+        可以关注一下表中的数据：
+         ACT_HI_ACTINST 表记录了所有实例经历的详细的任务节点（包含startEvent、parallelGateway、endEvent 这样的非用户任务节点）
+         ACT_HI_TASKINST 表记录了所有实例经历的用户任务节点（如 userTask 这样的任务节点。不包含网关、起始事件、结束事件这样的系统功能性节点）
+        注意表中的 execution_id，并关联 ACT_RU_EXECUTION 表查看各个任务节点与执行实例的关系，观察各个并行链路的执行实例是否是不同的。
      */
     @Test
     public void parallelGateway() {
+        clear();
+        
         ProcessInstance processInstance = createProcessInstance(BPMNFileEnums.PARALLEL_GATEWAY);
         
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
@@ -619,4 +627,17 @@ public class ActivityQuickstartTest {
             }
         }
     }
+    
+    // TODO 1. 不在多个 line 上配置 condition，也不用排他网关，是否效果与排他网关相同。（注意下 ACT_HI_ACTINST 表中是否也存储了网关节点数据）
+    // TODO 如果推测正确，则说明网关的意义只是标明下如何看待后面 line 上的 condition expression，activiti 是否要进行使用。
+    // TODO 比如并行网关，即使配置了 condition 也会被直接忽略。(3. 排他网关，如果没有配置 condition 又会怎样？)
+    // TODO 反之如果没有配置网关，则必须读取 line 上的 condition expression 进行执行。
+    
+    // TODO 2. 排他网关（以及不使用排他网关）是否会执行多个 condition 为 true 的链路。
+    
+    /**
+        包含网关：包含网关是排他、并行网关的结合。具体是什么网关，取决于是否在 line 上配置了 condition expression。配置了则为排他网关，否则为并行网关。
+     */
+    @Test
+    public void inclusiveGateway() {}
 }
