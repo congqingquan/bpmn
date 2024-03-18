@@ -24,6 +24,12 @@ public enum BPMNFileEnums {
             "processes/candidate-user.bpmn20.xml",
             "processes/candidate-user.candidate-user-id.png"
     ),
+    TASK_DELEGATE(
+            "任务委托流程",
+            "task-delegate-id",
+            "processes/task-delegate.bpmn20.xml",
+            "processes/task-delegate.task-delegate-id.svg"
+    ),
     TASK_EXECUTION_LISTENER(
             "任务-执行流-监听流程",
             "task-execution-listener-id",

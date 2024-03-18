@@ -13,6 +13,7 @@ import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Comment;
+import org.activiti.engine.task.DelegationState;
 import org.activiti.engine.task.Task;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -94,7 +95,29 @@ public class ActivityQuickstartTest {
         // repositoryService.deleteDeployment(d.getId(), true);
         // }
     }
-    
+
+    @Test
+    public void deploymentAll() {
+        clear();
+
+        BPMNFileEnums[] deploymentArr = {BPMNFileEnums.TASK_DELEGATE};
+        for (BPMNFileEnums bpmnFileEnums : deploymentArr) {
+            Deployment deployment = repositoryService
+                    .createDeployment()
+                    // 1) 流数据加载
+                    // .addInputStream()
+
+                    // 2) 压缩包加载
+                    // .addZipInputStream()
+
+                    // 3) classpath 加载
+                    .addClasspathResource(bpmnFileEnums.getFileClasspath())
+                    .addClasspathResource(bpmnFileEnums.getPicClasspath())
+                    .name(bpmnFileEnums.getName())
+                    .deploy();
+        }
+    }
+
     @Test
     public void clear() {
         // 1. 删除部署信息、流程定义信息
@@ -204,156 +227,6 @@ public class ActivityQuickstartTest {
         // 2. 完成任务
         Task lastTask = taskList.get(taskList.size() - 1);
         taskService.complete(lastTask.getId());
-    }
-    
-    @Test
-    public void setAssignee() {
-        Deployment deployment = repositoryService
-                .createDeployment()
-                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getFileClasspath())
-                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
-                .name(BPMNFileEnums.WITHDRAWAL.getName())
-                .deploy();
-        
-        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .deploymentId(deployment.getId())
-                .latestVersion()
-                .singleResult();
-        
-        // Must set the property named employee on first node otherwise will throw the exception:  Unknown property used in expression: ${employee}
-        
-        // 1. 在流程创建的时候就初始化所有被托人 (会新增操作表: act_hi_detail / act_hi_varinst / act_ru_variable), 每个结点都会
-        ProcessInstance processInstance = runtimeService.startProcessInstanceById(
-                processDefinition.getId(),
-                MapBuilder.<String, Object>create()
-                        .put("employee", "employee-CQQ")
-                        .put("manager", "manager-CQQ")
-                        // .put("financialAccounting", "financial-accounting-CQQ")
-                        .map()
-        );
-        
-        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
-             !CollectionUtils.isEmpty(taskList);
-             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
-        ) {
-            for (Task task : taskList) {
-                System.out.println("流程实例主键: " + task.getProcessInstanceId());
-                System.out.println("任务主键: " + task.getId());
-                System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
-                // 2. 否则在完成前一个任务节点的时候，设置下一个任务节点的被托人
-                if ("withdrawal-manager-approve-task-id".equals(task.getTaskDefinitionKey())) {
-                    taskService.complete(
-                            task.getId(),
-                            MapBuilder.<String, Object>create()
-                                    .put("financialAccounting", "financial-accounting-CQQ")
-                                    .map()
-                    );
-                    continue;
-                }
-                taskService.complete(task.getId());
-            }
-            
-            // clear();
-        }
-    }
-    
-    @Test
-    public void queryAssignee() {
-        ProcessDefinition latestProcessDefinition = repositoryService.createProcessDefinitionQuery()
-                .processDefinitionKey(BPMNFileEnums.WITHDRAWAL.getProcessDefinitionId())
-                .latestVersion()
-                .singleResult();
-        
-        List<HistoricProcessInstance> historicProcessInstanceList = historyService.createHistoricProcessInstanceQuery()
-                .processDefinitionId(latestProcessDefinition.getId())
-                .list();
-        
-        String processInstanceId = historicProcessInstanceList.get(0).getId();
-        
-        List<Task> taskList = taskService.createTaskQuery()
-                .processInstanceId(processInstanceId)
-                .taskAssignee("manager")
-                .list();
-        
-        for (Task task : taskList) {
-            System.out.println("流程实例主键: " + task.getProcessInstanceId());
-            System.out.println("任务主键: " + task.getId());
-            System.out.println("任务名称: " + task.getName());
-            System.out.println("任务被托人: " + task.getAssignee());
-        }
-    }
-    
-    @Test
-    public void candidateUser() {
-        clear();
-        
-        Deployment deployment = repositoryService
-                .createDeployment()
-                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getFileClasspath())
-                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getPicClasspath())
-                .name(BPMNFileEnums.CANDIDATE_USER.getName())
-                .deploy();
-        
-        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .deploymentId(deployment.getId())
-                .latestVersion()
-                .singleResult();
-        
-        ProcessInstance processInstance = runtimeService.startProcessInstanceById(
-                processDefinition.getId(),
-                MapBuilder.<String, Object>create()
-                        .put("myAssignee", "CQQ")
-                        .map()
-        );
-        
-        // 1. 完成第一个非候选人任务节点
-        Task firsetTask = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).singleResult();
-        taskService.complete(firsetTask.getId());
-        
-        // 2. 查询候选人包含 c2 的任务节点
-        List<Task> c2TaskList = taskService.createTaskQuery()
-                .processInstanceId(processInstance.getProcessInstanceId())
-                .taskCandidateUser("c2")
-                .list();
-        
-        for (Task task : c2TaskList) {
-            System.out.println("流程实例主键: " + task.getProcessInstanceId());
-            System.out.println("任务主键: " + task.getId());
-            System.out.println("任务名称: " + task.getName());
-            System.out.println("任务被托人: " + task.getAssignee());
-            
-            // 设置候选人为 c2
-            // 1. 候选人节点不能设置默认的被托人，否则将某个候选人设置为被托人时会提示：Task '77516' is already claimed by someone else.
-            // 2. 设置完候选人节点后，该节点可再次被查询出进行执行
-            if ("candidate-user-node-id".equals(task.getTaskDefinitionKey()) && StringUtils.isBlank(task.getAssignee())) {
-                // 3. 如果设置的被托人不为 c2，也不会报错
-                // taskService.claim(task.getId(), "c3");
-                taskService.claim(task.getId(), "c2");
-                // 4. 任务节点分配完被托人为候选人后，在根据候选人查询任务列表，就查不出来了
-                System.out.println("候选人为 c2 的任务节点：" +
-                        taskService.createTaskQuery()
-                                .processInstanceId(processInstance.getProcessInstanceId())
-                                .taskCandidateUser("c2")
-                                .list()
-                                .size()
-                );
-            }
-        }
-        
-        // 3. 完成后继的所有任务节点
-        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
-             !CollectionUtils.isEmpty(taskList);
-             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
-        ) {
-            for (Task task : taskList) {
-                System.out.println("流程实例主键: " + task.getProcessInstanceId());
-                System.out.println("任务主键: " + task.getId());
-                System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
-                taskService.complete(task.getId());
-            }
-        }
     }
     
     @Test
@@ -475,7 +348,7 @@ public class ActivityQuickstartTest {
     /**
      * 可监听的任务状态：
      * 1. create: 创建任务
-     * 2. assignment: 分配被托人
+     * 2. assignment: 分配处理人
      * 3. complete: 完成任务
      * 4. delete: 删除任务
      * <p>
@@ -507,7 +380,7 @@ public class ActivityQuickstartTest {
                 System.out.println("流程实例主键: " + task.getProcessInstanceId());
                 System.out.println("任务主键: " + task.getId());
                 System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
+                System.out.println("任务处理人: " + task.getAssignee());
                 taskService.complete(task.getId());
             }
         }
@@ -529,7 +402,7 @@ public class ActivityQuickstartTest {
                 System.out.println("流程实例主键: " + task.getProcessInstanceId());
                 System.out.println("任务主键: " + task.getId());
                 System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
+                System.out.println("任务处理人: " + task.getAssignee());
                 
                 ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
                 
@@ -568,7 +441,7 @@ public class ActivityQuickstartTest {
                 System.out.println("流程实例主键: " + task.getProcessInstanceId());
                 System.out.println("任务主键: " + task.getId());
                 System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
+                System.out.println("任务处理人: " + task.getAssignee());
                 
                 ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
                 
@@ -593,7 +466,7 @@ public class ActivityQuickstartTest {
      
         即多链路都会无条件执行，即使设置了 condition expression，也不会进行判断。
      
-        并行网关在数据上的体现：经过并行网关后，第一节点继续在当前执行实例上执行，剩余的其他链路会独立创建各自的执行实例执行到最后。也就是说后继的任务节点会被各个执行实例都执行一次。
+        并行网关在数据上的体现：经过并行网关后，第一个节点继续在当前执行实例上执行，剩余的其他链路会独立创建各自的执行实例执行到最后。也就是说后继的任务节点会被各个执行实例都执行一次。
         可以关注一下表中的数据：
          ACT_HI_ACTINST 表记录了所有实例经历的详细的任务节点（包含startEvent、parallelGateway、endEvent 这样的非用户任务节点）
          ACT_HI_TASKINST 表记录了所有实例经历的用户任务节点（如 userTask 这样的任务节点。不包含网关、起始事件、结束事件这样的系统功能性节点）
@@ -614,7 +487,7 @@ public class ActivityQuickstartTest {
                 System.out.println("流程实例主键: " + task.getProcessInstanceId());
                 System.out.println("任务主键: " + task.getId());
                 System.out.println("任务名称: " + task.getName());
-                System.out.println("任务被托人: " + task.getAssignee());
+                System.out.println("任务处理人: " + task.getAssignee());
                 
                 ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
                 
@@ -627,17 +500,216 @@ public class ActivityQuickstartTest {
             }
         }
     }
-    
-    // TODO 1. 不在多个 line 上配置 condition，也不用排他网关，是否效果与排他网关相同。（注意下 ACT_HI_ACTINST 表中是否也存储了网关节点数据）
-    // TODO 如果推测正确，则说明网关的意义只是标明下如何看待后面 line 上的 condition expression，activiti 是否要进行使用。
-    // TODO 比如并行网关，即使配置了 condition 也会被直接忽略。(3. 排他网关，如果没有配置 condition 又会怎样？)
-    // TODO 反之如果没有配置网关，则必须读取 line 上的 condition expression 进行执行。
-    
-    // TODO 2. 排他网关（以及不使用排他网关）是否会执行多个 condition 为 true 的链路。
-    
+
     /**
         包含网关：包含网关是排他、并行网关的结合。具体是什么网关，取决于是否在 line 上配置了 condition expression。配置了则为排他网关，否则为并行网关。
      */
     @Test
     public void inclusiveGateway() {}
+
+    // ============================================ Business ============================================
+
+    // 1. 任务处理人(任务处理人): 设置任务的处理人(处理人)，并完成任务(taskService.complete)。
+    // 处理人在act_ru_identitylink / act_hi_identitylink 任务人员表中的 type 为 participant
+    @Test
+    public void assignee() {
+        clear();
+
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getFileClasspath())
+                .addClasspathResource(BPMNFileEnums.WITHDRAWAL.getPicClasspath())
+                .name(BPMNFileEnums.WITHDRAWAL.getName())
+                .deploy();
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .deploymentId(deployment.getId())
+                .latestVersion()
+                .singleResult();
+
+        // Must set the property named employee on first node otherwise will throw the exception:  Unknown property used in expression: ${employee}
+
+        // 1. 在流程创建的时候就初始化所有处理人 (会新增操作表: act_hi_detail / act_hi_varinst / act_ru_variable), 每个结点都会
+        ProcessInstance processInstance = runtimeService.startProcessInstanceById(
+                processDefinition.getId(),
+                MapBuilder.<String, Object>create()
+                        .put("employee", "employee-CQQ")
+                        .put("manager", "manager-CQQ")
+                        // .put("financialAccounting", "financial-accounting-CQQ")
+                        .map()
+        );
+
+        // 2. 执行后续的所有节点 (到达管理员审批节点时设置财务审批人)
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务处理人: " + task.getAssignee());
+                // 2. 否则在完成前一个任务节点的时候，设置下一个任务节点的处理人
+                if ("withdrawal-manager-approve-task-id".equals(task.getTaskDefinitionKey())) {
+                    taskService.complete(
+                            task.getId(),
+                            MapBuilder.<String, Object>create()
+                                    .put("financialAccounting", "financial-accounting-CQQ")
+                                    .map()
+                    );
+                    continue;
+                }
+                taskService.complete(task.getId());
+            }
+        }
+
+        // 3. 查询处理人为 `manager-CQQ` 的任务节点
+        List<HistoricTaskInstance> queryTaskList = historyService.createHistoricTaskInstanceQuery()
+                .processInstanceId(processInstance.getProcessInstanceId())
+                .taskAssignee("manager-CQQ")
+                .list();
+
+        for (HistoricTaskInstance task : queryTaskList) {
+            System.out.println("流程实例主键: " + task.getProcessInstanceId());
+            System.out.println("任务主键: " + task.getId());
+            System.out.println("任务名称: " + task.getName());
+            System.out.println("任务处理人: " + task.getAssignee());
+        }
+    }
+
+    // 2.1 任务候选人: 从单、多个委托人中选取一个作为任务的处理人(处理人)拾取任务，并完成任务(taskService.complete)
+    // 候选人在act_ru_identitylink / act_hi_identitylink 任务人员表中的 type 为 candidate
+    @Test
+    public void candidateUser() {
+        clear();
+
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getFileClasspath())
+                .addClasspathResource(BPMNFileEnums.CANDIDATE_USER.getPicClasspath())
+                .name(BPMNFileEnums.CANDIDATE_USER.getName())
+                .deploy();
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .deploymentId(deployment.getId())
+                .latestVersion()
+                .singleResult();
+
+        ProcessInstance processInstance = runtimeService.startProcessInstanceById(
+                processDefinition.getId(),
+                MapBuilder.<String, Object>create()
+                        .put("myAssignee", "CQQ")
+                        .map()
+        );
+
+        // 1. 完成第一个非候选人任务节点
+        Task firsetTask = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).singleResult();
+        taskService.complete(firsetTask.getId());
+
+        // 2. 查询候选人包含 c2 的任务节点
+        List<Task> c2TaskList = taskService.createTaskQuery()
+                .processInstanceId(processInstance.getProcessInstanceId())
+                .taskCandidateUser("c2")
+                .list();
+
+        for (Task task : c2TaskList) {
+            System.out.println("流程实例主键: " + task.getProcessInstanceId());
+            System.out.println("任务主键: " + task.getId());
+            System.out.println("任务名称: " + task.getName());
+            System.out.println("任务处理人: " + task.getAssignee());
+
+            // 设置候选人为 c2
+            // 1. 候选人节点不能设置默认的处理人，否则将某个候选人设置为处理人时会提示：Task '77516' is already claimed by someone else.
+            // 2. 设置完候选人节点后，该节点可再次被查询出进行执行
+            if ("candidate-user-node-id".equals(task.getTaskDefinitionKey()) && StringUtils.isBlank(task.getAssignee())) {
+                // 3. 如果设置的处理人不为 c2，也不会报错
+                // taskService.claim(task.getId(), "c3");
+                taskService.claim(task.getId(), "c2");
+                // 4. 任务节点分配完处理人为候选人后，在根据候选人查询任务列表，就查不出来了
+                System.out.println("候选人为 c2 的任务节点：" +
+                        taskService.createTaskQuery()
+                                .processInstanceId(processInstance.getProcessInstanceId())
+                                .taskCandidateUser("c2")
+                                .list()
+                                .size()
+                );
+            }
+        }
+
+        // 3. 完成后继的所有任务节点
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务处理人: " + task.getAssignee());
+                taskService.complete(task.getId());
+            }
+        }
+    }
+
+    // 2.2 候选人组：与候选人的区别仅仅是语义不同，由个体转为了组。设置处理人时，逻辑上从组成员中获取一个人员拾取任务，并完成任务。
+
+    // 3. 任务委托人：将任务委托给其他人，受托人解决任务后(taskService.resolve)，在由委托人完成任务(taskService.complete)
+    // 委托人在act_ru_identitylink / act_hi_identitylink 任务人员表中的 type 为 participant
+    @Test
+    public void delegateTask() {
+        clear();
+
+        Deployment deployment = repositoryService
+                .createDeployment()
+                .addClasspathResource(BPMNFileEnums.TASK_DELEGATE.getFileClasspath())
+                .addClasspathResource(BPMNFileEnums.TASK_DELEGATE.getPicClasspath())
+                .name(BPMNFileEnums.TASK_DELEGATE.getName())
+                .deploy();
+
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+                .deploymentId(deployment.getId())
+                .latestVersion()
+                .singleResult();
+
+        ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
+
+        for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
+             !CollectionUtils.isEmpty(taskList);
+             taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
+        ) {
+            for (Task task : taskList) {
+                System.out.println("流程实例主键: " + task.getProcessInstanceId());
+                System.out.println("任务主键: " + task.getId());
+                System.out.println("任务名称: " + task.getName());
+                System.out.println("任务处理人: " + task.getAssignee());
+                System.out.println("任务所属人: " + task.getOwner());
+                System.out.println("任务委派状态: " + task.getDelegationState());
+
+                if ("task-delegate-node-id".equals(task.getTaskDefinitionKey())) {
+                    // 1. 将任务委托给他人处理:
+                    // ACT_HI_ACTINST: 修改 ASSIGNEE_ 字段为受托人
+                    // ACT_HI_TASKINST: 修改 ASSIGNEE_ 字段为受托人
+                    // ACT_RU_TASK: 修改 OWNER_ 字段为委托人，ASSIGNEE_ 字段为受托人，DELEGATION_ 字段为 PENDING
+                    if (null == task.getDelegationState()) {
+                        taskService.delegateTask(task.getId(), "receiver-qqc");
+                        continue;
+                    }
+
+                    // 2. 委托人解决任务：
+                    // ACT_HI_ACTINST: 改回 ASSIGNEE_ 字段为委托人
+                    // ACT_HI_TASKINST: 改回 ASSIGNEE_ 字段为委托人
+                    // ACT_RU_TASK: 改回 ASSIGNEE_ 字段为受托人，DELEGATION_ 字段为 RESOLVED
+
+                    // 受托人不能直接完成任务，需要交给所属人完成。
+                    // 受托人直接完成任务会抛出：org.activiti.engine.ActivitiException: A delegated task cannot be completed, but should be resolved instead.
+                    else if (DelegationState.PENDING == task.getDelegationState()) {
+                        taskService.resolveTask(task.getId());
+                        continue;
+                    }
+                }
+
+                taskService.complete(task.getId());
+            }
+        }
+    }
 }
