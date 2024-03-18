@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Activiti helper
@@ -68,6 +69,14 @@ public class ActivitiHelper {
                 .addClasspathResource(bpmnFileEnum.getPicClasspath())
                 .name(bpmnFileEnum.getName())
                 .deploy();
+    }
+
+    public static void clear() {
+        List<Deployment> deploymentList = repositoryService.createDeploymentQuery().list();
+        for (Deployment d : deploymentList) {
+            // cascade: 同时删除正在运行的任务实例数据
+            repositoryService.deleteDeployment(d.getId(), true);
+        }
     }
     
     // =========================== Process diagram generate ===========================
