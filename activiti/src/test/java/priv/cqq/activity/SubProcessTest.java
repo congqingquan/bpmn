@@ -37,8 +37,8 @@ public class SubProcessTest {
         ActivitiHelper.clear();
 
         BPMNFileEnums bpmnFileEnums = BPMNFileEnums.SUB_PROCESS;
-
-        ActivitiHelper.generateByXMLFileForTest(bpmnFileEnums);
+        
+        ActivitiHelper.generateSVGFile(bpmnFileEnums.getFileClasspath(), "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
 
         Deployment deployment = repositoryService
                 .createDeployment()
@@ -65,8 +65,8 @@ public class SubProcessTest {
                 System.out.println("任务处理人: " + task.getAssignee());
                 System.out.println("任务所属人: " + task.getOwner());
                 System.out.println("任务委派状态: " + task.getDelegationState());
-
-                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                
+                ActivitiHelper.generateSVGFile(processInstance, true, "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
 
                 taskService.complete(task.getId());
             }

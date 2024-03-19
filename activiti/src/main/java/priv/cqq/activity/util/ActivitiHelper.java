@@ -19,15 +19,14 @@ import org.apache.commons.io.FileUtils;
 import priv.cqq.activity.constans.BPMNFileEnums;
 
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Activiti helper
@@ -81,48 +80,35 @@ public class ActivitiHelper {
     
     // =========================== Process diagram generate ===========================
     
-    public static InputStream generateBytesByXMLFile(String bpmnFileClassPath) {
-        try (InputStream bpmnStream = MethodHandles.lookup().getClass().getClassLoader().getResourceAsStream(bpmnFileClassPath)) {
+    public static InputStream getInputStreamOfBPMFile(String bpmnFileClassPath) {
+        try (InputStream bpmnStream = MethodHandles.lookup().lookupClass().getClassLoader().getResourceAsStream(bpmnFileClassPath)) {
             XMLStreamReader xmlStreamReader = xmlInputFactory.createXMLStreamReader(bpmnStream);
             BpmnModel bpmnModel = new BpmnXMLConverter().convertToBpmnModel(xmlStreamReader);
+            xmlStreamReader.close();
+            
             ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
             return generator.generateDiagram(bpmnModel, "宋体", "宋体", "宋体");
         } catch (Exception exception) {
+            throw new RuntimeException("Get input stream of bpm file error");
+        }
+    }
+    
+    public static void generateSVGFile(String bpmnFileClassPath, String savePath, Supplier<String> fileNameSupplier) {
+        try (InputStream bpmnStream = getInputStreamOfBPMFile(bpmnFileClassPath)) {
+            FileUtils.copyInputStreamToFile(bpmnStream, new File(String.join("/", savePath, fileNameSupplier.get())));
+        } catch (IOException ioException) {
             throw new RuntimeException("Generate svg file error");
         }
     }
     
-    public static void generateByXMLFileForTest(BPMNFileEnums bpmnFileEnum) {
-        try (InputStream bpmnStream = MethodHandles.lookup().lookupClass().getClassLoader().getResourceAsStream(bpmnFileEnum.getFileClasspath())) {
-            XMLStreamReader xmlStreamReader = xmlInputFactory.createXMLStreamReader(bpmnStream);
-            BpmnModel bpmnModel = new BpmnXMLConverter().convertToBpmnModel(xmlStreamReader);
-            
-            // 生成 SVG 图像
-            if (bpmnModel != null && bpmnModel.getLocationMap().size() > 0) {
-                // 创建图像生成器
-                ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
-                // 生成流程图 已启动的task 高亮
-                //                return generator.generateDiagram(model,
-                //                        runtimeService.getActiveActivityIds(processInstanceId));
-                InputStream inputstream = generator.generateDiagram(bpmnModel, "宋体", "宋体", "宋体");
-                String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
-                FileUtils.copyInputStreamToFile(inputstream, new File("processes/" + imageName));
-            }
-            
-            xmlStreamReader.close();
-        } catch (IOException | XMLStreamException e) {
-            throw new RuntimeException("Generate svg file error");
-        }
-    }
-    
-    public static void generateByProcessInstanceIdForTest(ProcessInstance processInstance, boolean noteActiveNode) {
+    public static void generateSVGFile(ProcessInstance processInstance, boolean noteActiveNode,
+                                       String savePath, Supplier<String> fileNameSupplier) {
         BpmnModel bpmnModel = repositoryService.getBpmnModel(processInstance.getProcessDefinitionId());
         ProcessDiagramGenerator generator = new DefaultProcessDiagramGenerator();
         try (InputStream inputStream = noteActiveNode ?
                 generator.generateDiagram(bpmnModel, runtimeService.getActiveActivityIds(processInstance.getProcessInstanceId()), Collections.emptyList(), "宋体", "宋体", "宋体")
-                : generator.generateDiagram(bpmnModel, "宋体", "宋体", "宋体");) {
-            String imageName = "image-" + Instant.now().getEpochSecond() + ".svg";
-            FileUtils.copyInputStreamToFile(inputStream, new File("processes/" + imageName));
+                : generator.generateDiagram(bpmnModel, "宋体", "宋体", "宋体")) {
+            FileUtils.copyInputStreamToFile(inputStream, new File(String.join("/", savePath, fileNameSupplier.get())));
         } catch (Exception e) {
             throw new RuntimeException("Generate svg file error");
         }

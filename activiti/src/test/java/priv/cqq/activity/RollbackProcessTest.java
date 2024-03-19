@@ -20,41 +20,43 @@ import java.util.List;
 
 @SpringBootTest
 public class RollbackProcessTest {
-
+    
     @Resource
     private RepositoryService repositoryService;
-
+    
     @Resource
     private RuntimeService runtimeService;
-
+    
     @Resource
     private TaskService taskService;
-
+    
     @Resource
     private HistoryService historyService;
-    // ACT_HI_ACTINST / ACT_HI_TASKINST 等表中构建子流程的数据，但与外部流程仍属于同一个流程实例
+    
     @Test
-    public void rollbackProcess() {
+    public void rollbackProcess() throws InterruptedException {
         ActivitiHelper.clear();
-
+        
         BPMNFileEnums bpmnFileEnums = BPMNFileEnums.ROLLBACK_PROCESS;
-
-        ActivitiHelper.generateByXMLFileForTest(bpmnFileEnums);
-
+        
+        ActivitiHelper.generateSVGFile(bpmnFileEnums.getFileClasspath(), "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
+        
         Deployment deployment = repositoryService
                 .createDeployment()
                 .addClasspathResource(bpmnFileEnums.getFileClasspath())
                 .addClasspathResource(bpmnFileEnums.getPicClasspath())
                 .name(bpmnFileEnums.getName())
                 .deploy();
-
+        
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                 .deploymentId(deployment.getId())
                 .latestVersion()
                 .singleResult();
-
+        
         ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
-
+        
+        boolean agree = false;
+        
         for (List<Task> taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list();
              !CollectionUtils.isEmpty(taskList);
              taskList = taskService.createTaskQuery().processInstanceId(processInstance.getProcessInstanceId()).list()
@@ -66,12 +68,19 @@ public class RollbackProcessTest {
                 System.out.println("任务处理人: " + task.getAssignee());
                 System.out.println("任务所属人: " + task.getOwner());
                 System.out.println("任务委派状态: " + task.getDelegationState());
-
-                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
-
+                
+                ActivitiHelper.generateSVGFile(processInstance, true, "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
+                
                 if ("request-approval".equals(task.getTaskDefinitionKey())) {
-                    boolean isEven = System.currentTimeMillis() % 2 == 0;
-                    taskService.complete(task.getId(), MapBuilder.<String, Object>create().put("approvalStatus", isEven ? "AGREE" : "REJECT").map());
+                    // 发现一个细节：局部变量会被同步到退回任务节点
+                    taskService.complete(
+                            task.getId(),
+                            MapBuilder.<String, Object>create().put("approvalStatus", agree ? "AGREE" : "REJECT").map(),
+                            // 必须设置为局部变量，测试来看：全局变量的值不会被 complete 时指定的同名变量覆盖
+                            // false
+                            true
+                    );
+                    agree = !agree;
                     continue;
                 }
                 taskService.complete(task.getId());

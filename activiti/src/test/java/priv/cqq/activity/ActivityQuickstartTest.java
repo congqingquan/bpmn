@@ -404,7 +404,7 @@ public class ActivityQuickstartTest {
                 System.out.println("任务名称: " + task.getName());
                 System.out.println("任务处理人: " + task.getAssignee());
                 
-                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                ActivitiHelper.generateSVGFile(processInstance, true, "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
                 
                 if ("set-global-var-task-id".equals(task.getTaskDefinitionKey())) {
                     // localScope: 默认为 false，即只在当前 task 范围内生效
@@ -443,7 +443,7 @@ public class ActivityQuickstartTest {
                 System.out.println("任务名称: " + task.getName());
                 System.out.println("任务处理人: " + task.getAssignee());
                 
-                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                ActivitiHelper.generateSVGFile(processInstance, true, "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
                 
                 if ("submit-leave-approve-task-id".equals(task.getTaskDefinitionKey())) {
                     // No outgoing sequence flow of the exclusive gateway 'sid-9F9EB010-CBB0-449B-ABC6-96663081191C' could be selected for continuing the process
@@ -489,7 +489,7 @@ public class ActivityQuickstartTest {
                 System.out.println("任务名称: " + task.getName());
                 System.out.println("任务处理人: " + task.getAssignee());
                 
-                ActivitiHelper.generateByProcessInstanceIdForTest(processInstance, true);
+                ActivitiHelper.generateSVGFile(processInstance, true, "processes", () -> "image-" + System.currentTimeMillis() + ".svg");
                 
                 if ("submit-leave-approve-task-id".equals(task.getTaskDefinitionKey())) {
                     // 测试 line 上的 condition expression 是否会生效
