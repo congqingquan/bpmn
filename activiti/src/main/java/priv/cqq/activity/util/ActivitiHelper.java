@@ -93,7 +93,7 @@ public class ActivitiHelper {
     }
     
     public static void generateByXMLFileForTest(BPMNFileEnums bpmnFileEnum) {
-        try (InputStream bpmnStream = MethodHandles.lookup().getClass().getClassLoader().getResourceAsStream(bpmnFileEnum.getFileClasspath())) {
+        try (InputStream bpmnStream = MethodHandles.lookup().lookupClass().getClassLoader().getResourceAsStream(bpmnFileEnum.getFileClasspath())) {
             XMLStreamReader xmlStreamReader = xmlInputFactory.createXMLStreamReader(bpmnStream);
             BpmnModel bpmnModel = new BpmnXMLConverter().convertToBpmnModel(xmlStreamReader);
             

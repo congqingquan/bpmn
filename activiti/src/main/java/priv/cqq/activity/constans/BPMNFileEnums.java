@@ -53,7 +53,20 @@ public enum BPMNFileEnums {
             "parallel-gateway",
             "processes/parallel-gateway.bpmn20.xml",
             "processes/parallel-gateway.parallel-gateway-id.svg"
-    );
+    ),
+    SUB_PROCESS(
+            "子流程",
+            "sub-process",
+            "processes/sub-process.bpmn20.xml",
+            "processes/sub-process.sub-process-id.svg"
+    ),
+    ROLLBACK_PROCESS(
+            "回退流程",
+            "rollback-process",
+            "processes/rollback-process.bpmn20.xml",
+            "processes/rollback-process.rollback-process-id.svg"
+    ),
+    ;
     
     private final String name;
 
